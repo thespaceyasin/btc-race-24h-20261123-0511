@@ -55,7 +55,7 @@ RACE_MAX_TRANCHES = 5
 RACE_MA_SLOW = 120
 RACE_MA_FAST = 20
 RACE_MOM_BARS = 60
-RACE_TRAIL_BPS = 150          # exit when 1.50% below peak since entry
+RACE_TRAIL_BPS = 100          # exit when 1.00% below peak since entry
 RACE_WASHOUT_BPS = 150       # washout = 1.50% below 120-bar high
 RACE_DIP_ADD_BPS = 150        # add when 1.50% below peak, trend still up
 RACE_MIN_HOLD_BARS = 60      # at least this long between adds
@@ -221,8 +221,15 @@ class Bot:
             trend_up = close > ma_slow and ma_fast > ma_slow and mom > 0.01
             washout = close < high_slow * (1 - RACE_WASHOUT_BPS / 10000.0) and close > closes[-2]
             if self.tranches_held == 0:
-                if trend_up or washout:
+                if trend_up:
                     o = self._buy(2 * RACE_NOTIONAL_PER_TRANCHE)
+                    if o:
+                        orders.append(o)
+                        self.bars_since_buy = 0
+                elif washout:
+                    # Washout catch is counter-trend: half the size of a
+                    # trend entry, so a failed bounce costs half as much.
+                    o = self._buy(RACE_NOTIONAL_PER_TRANCHE)
                     if o:
                         orders.append(o)
                         self.bars_since_buy = 0
